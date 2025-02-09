@@ -124,6 +124,7 @@ import ShareSqlLabQuery from '../ShareSqlLabQuery';
 import SqlEditorLeftBar from '../SqlEditorLeftBar';
 import AceEditorWrapper from '../AceEditorWrapper';
 import RunQueryActionButton from '../RunQueryActionButton';
+import AiAssistantActionButton from '../AiAssistantActionButton';
 import QueryLimitSelect from '../QueryLimitSelect';
 import KeyboardShortcutButton, {
   KEY_MAP,
@@ -854,6 +855,11 @@ const SqlEditor: FC<Props> = ({
               )}
             </div>
             <div className="rightItems">
+              <span>
+                <AiAssistantActionButton
+                  queryEditorId={queryEditor.id}
+                />
+              </span>
               <span>
                 <SaveQuery
                   queryEditorId={queryEditor.id}
