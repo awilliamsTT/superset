@@ -46,6 +46,7 @@ import {
 } from '@superset-ui/core';
 import type {
   QueryEditor,
+  QueryGenerator,
   SqlLabRootState,
   CursorPosition,
 } from 'src/SqlLab/types';
@@ -75,6 +76,7 @@ import {
   queryEditorSetAndSaveSql,
   queryEditorSetTemplateParams,
   runQueryFromSqlEditor,
+  generateSql,
   saveQuery,
   addSavedQueryToTabState,
   scheduleQuery,
@@ -124,7 +126,7 @@ import ShareSqlLabQuery from '../ShareSqlLabQuery';
 import SqlEditorLeftBar from '../SqlEditorLeftBar';
 import AceEditorWrapper from '../AceEditorWrapper';
 import RunQueryActionButton from '../RunQueryActionButton';
-import AiAssistantActionButton from '../AiAssistantActionButton';
+import AiAssistantEditor from '../AiAssistantEditor';
 import QueryLimitSelect from '../QueryLimitSelect';
 import KeyboardShortcutButton, {
   KEY_MAP,
@@ -269,6 +271,7 @@ const SqlEditor: FC<Props> = ({
     hideLeftBar,
     currentQueryEditorId,
     hasSqlStatement,
+    queryGenerator,
   } = useSelector<
     SqlLabRootState,
     {
@@ -277,8 +280,9 @@ const SqlEditor: FC<Props> = ({
       hideLeftBar?: boolean;
       currentQueryEditorId: QueryEditor['id'];
       hasSqlStatement: boolean;
+      queryGenerator: QueryGenerator;
     }
-  >(({ sqlLab: { unsavedQueryEditor, databases, queries, tabHistory } }) => {
+  >(({ sqlLab: { unsavedQueryEditor, databases, queries, tabHistory, queryGenerator } }) => {
     let { dbId, latestQueryId, hideLeftBar } = queryEditor;
     if (unsavedQueryEditor?.id === queryEditor.id) {
       dbId = unsavedQueryEditor.dbId || dbId;
@@ -294,6 +298,7 @@ const SqlEditor: FC<Props> = ({
       latestQuery: queries[latestQueryId || ''],
       hideLeftBar,
       currentQueryEditorId: tabHistory.slice(-1)[0],
+      queryGenerator,
     };
   }, shallowEqual);
 
@@ -367,6 +372,12 @@ const SqlEditor: FC<Props> = ({
   const runQuery = () => {
     if (database) {
       startQuery();
+    }
+  };
+
+  const runAiAssistant = (prompt: string) => {
+    if (database) {
+      dispatch(generateSql(database.id, queryEditor, prompt));
     }
   };
 
@@ -856,11 +867,6 @@ const SqlEditor: FC<Props> = ({
             </div>
             <div className="rightItems">
               <span>
-                <AiAssistantActionButton
-                  queryEditorId={queryEditor.id}
-                />
-              </span>
-              <span>
                 <SaveQuery
                   queryEditorId={queryEditor.id}
                   columns={latestQuery?.results?.columns || []}
@@ -887,6 +893,17 @@ const SqlEditor: FC<Props> = ({
       </StyledToolbar>
     );
   };
+
+  const renderAiAssistantEditor = () => {   
+    return database?.llm_enabled && (
+      <AiAssistantEditor
+        queryEditorId={queryEditor.id}
+        onGenerateSql={runAiAssistant}
+        isGeneratingSql={queryGenerator.isGeneratingQuery}
+        // disabledMessage='AI Assistant is unavailable - please check that the API key setting is correct'
+      />
+    )
+  }
 
   const handleCursorPositionChange = (newPosition: CursorPosition) => {
     dispatch(queryEditorSetCursorPosition(queryEditor, newPosition));
@@ -917,6 +934,7 @@ const SqlEditor: FC<Props> = ({
               startQuery={startQuery}
             />
           )}
+          {renderAiAssistantEditor()}
           {isActive && (
             <AceEditorWrapper
               autocomplete={autocompleteEnabled}
